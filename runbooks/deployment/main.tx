@@ -1,0 +1,41 @@
+################################################################
+# Manage launchlabs-buy deployment through Crypto Infrastructure as Code
+################################################################
+
+addon "svm" {
+    rpc_api_url = input.rpc_api_url
+    network_id = input.network_id
+}
+
+action "deploy_launchlabs_buy" "svm::deploy_program" {
+    description = "Deploy launchlabs_buy program"
+    program = svm::get_program_from_anchor_project("launchlabs_buy") 
+    authority = signer.authority
+    payer = signer.payer
+    instant_surfnet_deployment = true
+}
+
+variable "wsol" {
+    value = "So11111111111111111111111111111111111111112"
+    editable = true
+}
+variable "rbit" {
+    value = "Fr7Bx4jbcHm9B4rRvWjAasmaWEZgr2MQCXh6X3Dmbonk"
+    editable = true
+}
+
+
+action "fund_usdc" "svm::setup_surfnet" {
+    set_token_account {
+        public_key = signer.authority.public_key
+        token = variable.wsol
+        token_program = "token2020"
+        amount = 1000000000
+    }
+    set_token_account {
+        public_key = signer.authority.public_key
+        token = variable.rbit
+        token_program = "token2020"
+        amount = 1000000000
+    }
+}
