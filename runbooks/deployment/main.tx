@@ -15,12 +15,8 @@ action "deploy_launchlabs_buy" "svm::deploy_program" {
     instant_surfnet_deployment = true
 }
 
-variable "wsol" {
-    value = "So11111111111111111111111111111111111111112"
-    editable = true
-}
-variable "rbit" {
-    value = "Fr7Bx4jbcHm9B4rRvWjAasmaWEZgr2MQCXh6X3Dmbonk"
+variable "usd1" {
+    value = "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB"
     editable = true
 }
 
@@ -28,13 +24,7 @@ variable "rbit" {
 action "fund_usdc" "svm::setup_surfnet" {
     set_token_account {
         public_key = signer.authority.public_key
-        token = variable.wsol
-        token_program = "token2020"
-        amount = 1000000000
-    }
-    set_token_account {
-        public_key = signer.authority.public_key
-        token = variable.rbit
+        token = variable.usd1
         token_program = "token2020"
         amount = 1000000000
     }

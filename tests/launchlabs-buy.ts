@@ -1,43 +1,71 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
-import { LaunchlabsBuy } from "../target/types/launchlabs_buy";
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { createAssociatedTokenAccountIdempotentInstructionWithDerivation } from "@solana/spl-token";
+import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
 import { BN } from "bn.js";
-import { NATIVE_MINT } from "@solana/spl-token";
+import {
+  RaydiumLaunchpad,
+  IDL as RaydiumLaunchpadIDL,
+} from "../idl-types/raydium_launchpad";
+import { LaunchlabsBuy } from "../target/types/launchlabs_buy";
 
 describe("launchlabs-buy", () => {
   // Configure the client to use the local cluster.
   anchor.setProvider(anchor.AnchorProvider.env());
 
   const program = anchor.workspace.launchlabsBuy as Program<LaunchlabsBuy>;
+  const raydiumProgram = new Program<RaydiumLaunchpad>(
+    RaydiumLaunchpadIDL,
+    program.provider
+  );
+  const platformConfig = new PublicKey(
+    "BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4"
+  );
+
+  const baseTokenKeypair = new Keypair();
+  const baseTokenMint = baseTokenKeypair.publicKey;
+
+  const quoteTokenMint = new PublicKey(
+    "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB"
+  );
+
+  it("Create!", async () => {
+    const tx = await program.methods
+      .create()
+      .accounts({
+        platformConfig,
+        baseTokenMint,
+        quoteTokenMint,
+      })
+      .signers([baseTokenKeypair])
+      .rpc();
+
+    console.log(`https://explorer.solana.com/tx/${tx}?cluster=custom`);
+  });
 
   it("Buy!", async () => {
     const amountIn = new BN(100_000_000);
     const minimumAmountOut = new BN(0);
     const shareFeeRate = new BN(0);
 
-    const platformConfig = new PublicKey(
-      "BuM6KDpWiTcxvrpXywWFiw45R2RNH8WURdvqoTDV1BW4"
+    const [platformFeeVault] = PublicKey.findProgramAddressSync(
+      [platformConfig.toBuffer(), quoteTokenMint.toBuffer()],
+      raydiumProgram.programId
     );
-    const baseTokenMint = new PublicKey(
-      "Fr7Bx4jbcHm9B4rRvWjAasmaWEZgr2MQCXh6X3Dmbonk"
-    );
-    const quoteTokenMint = NATIVE_MINT;
 
-    // let platform_fee_vault = Pubkey::find_program_address(
-    //     &[platform_config.key().as_ref(), quote_token_mint.key().as_ref()],
-    //     &launch_program_id,
-    // ).0;
-    const platformFeeVault = new PublicKey(
-      "84FqPoha4BJCn4LrXtzFQ73ZEHkbFbXparZMPg7wdDzS"
+    const creator = program.provider.wallet.publicKey;
+
+    const [creatorFeeVault] = PublicKey.findProgramAddressSync(
+      [creator.toBuffer(), quoteTokenMint.toBuffer()],
+      raydiumProgram.programId
     );
-    // let creator_fee_vault = Pubkey::find_program_address(
-    //         &[pool_creator.as_ref(), quote_token_mint.key().as_ref()],
-    //         &launch_program_id,
-    //     ).0;
-    const creatorFeeVault = new PublicKey(
-      "DJaA1XD9rGudGrQcF4avMWrEGRSorunSgiJWTvUBHugj"
-    );
+
+    const createBaseAta =
+      createAssociatedTokenAccountIdempotentInstructionWithDerivation(
+        creator,
+        creator,
+        baseTokenMint
+      );
 
     const remainingAccounts = [
       {
@@ -64,6 +92,7 @@ describe("launchlabs-buy", () => {
         baseTokenMint,
         quoteTokenMint,
       })
+      .preInstructions([createBaseAta])
       .remainingAccounts(remainingAccounts)
       .rpc();
 

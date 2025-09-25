@@ -36,7 +36,8 @@
             "The user performing the swap operation",
             "Must sign the transaction and pay for fees"
           ],
-          "signer": true
+          "signer": true,
+          "writable": true
         },
         {
           "name": "authority",
