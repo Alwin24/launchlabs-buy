@@ -1,7 +1,12 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { createAssociatedTokenAccountIdempotentInstructionWithDerivation } from "@solana/spl-token";
-import { Keypair, PublicKey, SystemProgram } from "@solana/web3.js";
+import {
+  ComputeBudgetProgram,
+  Keypair,
+  PublicKey,
+  SystemProgram,
+} from "@solana/web3.js";
 import { BN } from "bn.js";
 import {
   RaydiumLaunchpad,
@@ -30,6 +35,10 @@ describe("launchlabs-buy", () => {
   );
 
   it("Create!", async () => {
+    const computeUnitIx = ComputeBudgetProgram.setComputeUnitLimit({
+      units: 500_000,
+    });
+
     const tx = await program.methods
       .create()
       .accounts({
@@ -37,6 +46,7 @@ describe("launchlabs-buy", () => {
         baseTokenMint,
         quoteTokenMint,
       })
+      .preInstructions([computeUnitIx])
       .signers([baseTokenKeypair])
       .rpc();
 
